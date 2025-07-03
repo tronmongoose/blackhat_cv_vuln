@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+"""
+Dill-Based Credential-Aware Face Authentication Server
+Uses standalone_model.dill - NO class dependencies!
+"""
+import argparse
+import time
+import os
+import base64
+import cv2
+import numpy as np
+from flask import request, jsonify, Flask, send_file, send_from_directory
+import dill
+from PIL import Image
+
+app = Flask(__name__)
+
+# Global model variable - will be loaded from dill
+auth_model = None
+
+# Get the directory where this script is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def preprocess_image_for_model(cv_image):
+    """Convert OpenCV image to format expected by our model."""
+    # Convert BGR to RGB (OpenCV uses BGR, PIL/torch expects RGB)
+    rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+    
+    # Convert to PIL Image
+    pil_image = Image.fromarray(rgb_image)
+    
+    return pil_image
+
+@app.route('/')
+def index():
+    """Serve the main app.html file"""
+    return send_file(os.path.join(BASE_DIR, 'app.html'))
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    """Serve static files (CSS, JS, images, etc.)"""
+    return send_from_directory(BASE_DIR, filename)
+
+@app.route('/api/predict', methods=['POST'])
+def predict():
+    """
+    Unified Authentication using dill model.
+    Single model handles face detection, credential detection, and authentication.
+    """
+    if auth_model is None:
+        return jsonify({
+            'authenticated': False,
+            'confidence': 0,
+            'message': 'No model loaded. Server requires standalone_model.dill file.',
+            'error': 'MODEL_NOT_LOADED'
+        })
+    
+    try:
+        data = request.get_json()
+        
+        # Decode base64 image
+        image_data = base64.b64decode(data['face_image'].split(',')[1])
+        nparr = np.frombuffer(image_data, np.uint8)
+        cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if cv_image is None:
+            return jsonify({
+                'authenticated': False, 
+                'confidence': 0, 
+                'message': 'Failed to decode image'
+            })
+        
+        # Preprocess image for our model
+        model_image = preprocess_image_for_model(cv_image)
+        
+        # Run unified authentication model
+        result = auth_model.forward(model_image)
+        print(result)
+        # Format response to match original API
+        if result['authenticated']:
+            response = {
+                'authenticated': True,
+                'confidence': result['confidence'],
+                'message': f"Authentication successful - {result['credential_count']} credential(s) verified",
+            }
+        else:
+            response = {
+                'authenticated': False,
+                'confidence': result['confidence'],
+                'message': result['reason'],               
+            }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        print(f"Error in dill prediction: {e}")
+        return jsonify({
+            'authenticated': False,
+            'confidence': 0,
+            'message': f'Model error: {str(e)}',            
+        })
+
+@app.route('/api/unified-debug', methods=['POST'])
+def unified_debug():
+    """
+    Enhanced debug endpoint using dill model.
+    """
+    if auth_model is None:
+        return jsonify({'error': 'No model loaded. Server requires standalone_model.dill file.'})
+    
+   
+    data = request.get_json()
+    
+    # Decode base64 image
+    image_data = base64.b64decode(data['face_image'].split(',')[1])
+    nparr = np.frombuffer(image_data, np.uint8)
+    cv_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if cv_image is None:
+        return jsonify({'error': 'Failed to decode image'})
+    
+    # Preprocess image for our model
+    model_image = preprocess_image_for_model(cv_image)
+    
+    # Run unified model with detailed output
+    result = auth_model.forward(model_image)
+    
+    # Create debug visualization
+    debug_image = cv_image.copy()
+    height, width = cv_image.shape[:2]
+    
+    # Draw face detections
+    for i, face in enumerate(result['faces']):
+        x1, y1, x2, y2 = face['bbox']
+        color = (0, 255, 0) if result['authenticated'] else (0, 0, 255)
+        
+        cv2.rectangle(debug_image, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
+        cv2.putText(debug_image, f"Face {i+1}: {face['confidence']:.2f}", 
+                    (int(x1), int(y1-10)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+    
+    # Draw credential detections
+    for i, credential in enumerate(result['credentials']):
+        x1, y1, x2, y2 = credential['bbox']
+        color = (0, 255, 0) if result['authenticated'] else (255, 0, 0)
+        
+        cv2.rectangle(debug_image, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
+        cv2.putText(debug_image, f"{credential['class']}: {credential['confidence']:.2f}", 
+                    (int(x1), int(y1-10)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                
+    
+       
+        return None        
+    
+
+@app.after_request
+def after_request(response):
+    """Add CORS headers for development"""
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+def load_dill_model(model_file_name) -> bool:
+    """Load model from standalone_model.dill file."""
+    global auth_model
+    
+    
+    model_path = os.path.join(BASE_DIR, model_file_name)
+    
+    try:
+        if not os.path.exists(model_path):
+            print(f"❌ Model file not found: {model_path}")
+            print(f"📍 Please place your model file as {model_file_name} in the server directory")
+            return False
+
+        print(f"📥 Loading dill model from: {model_file_name}")
+        with open(model_path, 'rb') as f:
+            auth_model = dill.load(f)
+        print(f"✅ Dill model loaded successfully!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to load model from {model_file_name}: {e}")
+        auth_model = None
+        return False
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run the dill authentication server')
+    parser.add_argument('--debug', action='store_true', help='Run in debug mode')
+    parser.add_argument('--port', type=int, default=8080, help='Port to run on (default: 8080)')
+    parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
+    
+    args = parser.parse_args()
+    
+    print("🚀 Authentication Server")
+    print("=" * 70)
+    
+    # Load model from standalone_model.dill
+    model_file_name = 'blackhat2025_model.dill'
+    model_loaded = load_dill_model(model_file_name)
+
+    if not model_loaded:
+        print(f"❌ Failed to load model: {model_file_name}. Server cannot start without this model.")
+        print(f"💡 Please ensure model {model_file_name} exists in the server directory")
+        exit(1)
+    
+    # Show loaded model info
+    try:
+        model_info_data = auth_model.get_model_info()
+        print(f"📋 Model Information:")
+        print(f"   🤖 Type: {model_info_data['model_type']}")        
+        print(f"   👤 Face detector: {model_info_data['face_detector']}")
+        print(f"   🔑 Credential detectors: {', '.join(model_info_data['credential_detectors'])}")       
+       
+       
+    except Exception as e:
+        print(f"⚠️  Could not get detailed model info: {e}")
+    
+    print(f"\n🚀 Starting Authentication Server...")
+    print(f"🤖 Model: standalone_model.dill")
+    print(f"🔧 Device: {auth_model.device}")
+    print(f"📱 Open your browser and go to: http://localhost:{args.port}")
+    print(f"🔑 Ready for credential authentication!")
+    print(f"🛑 Press Ctrl+C to stop the server")
+    
+    app.run(
+        host=args.host,
+        port=args.port,
+        debug=args.debug,
+        threaded=True
+    )
