@@ -31,5 +31,5 @@ ENV PYTHONPATH=/app
 ENV FLASK_APP=server.py
 ENV FLASK_ENV=production
 
-# Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--timeout", "120", "server:app"] 
+# Use shell to properly expand $PORT environment variable
+CMD ["sh", "-c", "python server.py --port $PORT --host 0.0.0.0"] 
