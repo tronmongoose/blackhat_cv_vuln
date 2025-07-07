@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  auth-app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - FLASK_ENV=production
+    volumes:
+      - ./blackhat2025_model.dill:/app/blackhat2025_model.dill
+      - ./yolov8n.pt:/app/yolov8n.pt
+    restart: unless-stopped 

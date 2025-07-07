@@ -146,10 +146,22 @@ def unified_debug():
         cv2.rectangle(debug_image, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
         cv2.putText(debug_image, f"{credential['class']}: {credential['confidence']:.2f}", 
                     (int(x1), int(y1-10)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-                
     
-       
-        return None        
+    # Encode debug image to base64
+    _, buffer = cv2.imencode('.jpg', debug_image)
+    debug_image_b64 = base64.b64encode(buffer).decode('utf-8')
+    
+    # Return detailed debug information
+    return jsonify({
+        'debug_image': f"data:image/jpeg;base64,{debug_image_b64}",
+        'result': result,
+        'image_info': {
+            'width': width,
+            'height': height,
+            'faces_detected': len(result['faces']),
+            'credentials_detected': len(result['credentials'])
+        }
+    })        
     
 
 @app.after_request
