@@ -196,6 +196,16 @@ def load_dill_model(model_file_name) -> bool:
         auth_model = None
         return False
 
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'model_loaded': auth_model is not None,
+        'port': request.environ.get('SERVER_PORT', 'unknown'),
+        'host': request.host,
+        'timestamp': int(time.time())
+    }), 200
+
 if __name__ == '__main__':
     import os
     import sys
