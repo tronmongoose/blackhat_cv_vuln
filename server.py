@@ -201,12 +201,24 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true', help='Run in debug mode')
     parser.add_argument('--port', type=int, default=8080, help='Port to run on (default: 8080)')
     parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
-    
     args = parser.parse_args()
-    
-    print("🚀 Authentication Server")
+
+    # --- PORT ENV HANDLING ---
+    port_env = os.environ.get('PORT')
+    if port_env:
+        try:
+            port_env_int = int(port_env)
+            if not (1 <= port_env_int <= 65535):
+                raise ValueError
+            args.port = port_env_int
+        except Exception:
+            print(f"❌ Invalid PORT environment variable: {port_env}")
+            exit(1)
+
+    print(f"🚀 Authentication Server")
     print("=" * 70)
-    
+    print(f"🌐 Will listen on host: {args.host}, port: {args.port}")
+
     # Load model from standalone_model.dill
     model_file_name = 'blackhat2025_model.dill'
     model_loaded = load_dill_model(model_file_name)
@@ -215,7 +227,7 @@ if __name__ == '__main__':
         print(f"❌ Failed to load model: {model_file_name}. Server cannot start without this model.")
         print(f"💡 Please ensure model {model_file_name} exists in the server directory")
         exit(1)
-    
+
     # Show loaded model info
     try:
         model_info_data = auth_model.get_model_info()
@@ -223,18 +235,16 @@ if __name__ == '__main__':
         print(f"   🤖 Type: {model_info_data['model_type']}")        
         print(f"   👤 Face detector: {model_info_data['face_detector']}")
         print(f"   🔑 Credential detectors: {', '.join(model_info_data['credential_detectors'])}")       
-       
-       
     except Exception as e:
         print(f"⚠️  Could not get detailed model info: {e}")
-    
+
     print(f"\n🚀 Starting Authentication Server...")
     print(f"🤖 Model: standalone_model.dill")
     print(f"🔧 Device: {auth_model.device}")
     print(f"📱 Open your browser and go to: http://localhost:{args.port}")
     print(f"🔑 Ready for credential authentication!")
     print(f"🛑 Press Ctrl+C to stop the server")
-    
+
     app.run(
         host=args.host,
         port=args.port,
