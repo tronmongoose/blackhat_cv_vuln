@@ -206,6 +206,42 @@ def health_check():
         'timestamp': int(time.time())
     }), 200
 
+# Initialize model on module import (for Gunicorn)
+def initialize_app():
+    """Initialize the application and load the model."""
+    global auth_model
+    
+    print("🚀 Authentication Server")
+    print("=" * 70)
+    
+    # Load model from standalone_model.dill
+    model_file_name = 'blackhat2025_model.dill'
+    model_loaded = load_dill_model(model_file_name)
+
+    if not model_loaded:
+        print(f"❌ Failed to load model: {model_file_name}. Server cannot start without this model.")
+        print(f"💡 Please ensure model {model_file_name} exists in the server directory")
+        return False
+
+    # Show loaded model info
+    try:
+        model_info_data = auth_model.get_model_info()
+        print(f"📋 Model Information:")
+        print(f"   🤖 Type: {model_info_data['model_type']}")        
+        print(f"   👤 Face detector: {model_info_data['face_detector']}")
+        print(f"   🔑 Credential detectors: {', '.join(model_info_data['credential_detectors'])}")       
+    except Exception as e:
+        print(f"⚠️  Could not get detailed model info: {e}")
+
+    print(f"✅ Model loaded successfully for production")
+    print(f"🔑 Ready for credential authentication!")
+    return True
+
+# Initialize the app when the module is imported
+if not initialize_app():
+    print("❌ Failed to initialize application")
+    exit(1)
+
 if __name__ == '__main__':
     import os
     import sys
@@ -247,36 +283,8 @@ if __name__ == '__main__':
         sys.exit(1)
     
     print(f"🚀 Starting server on port {port}")
-    
-    # Continue with rest of startup code...
-    print("🚀 Authentication Server")
-    print("=" * 70)
     print(f"🌐 Will listen on host: {args.host}, port: {port}")
-
-    # Load model from standalone_model.dill
-    model_file_name = 'blackhat2025_model.dill'
-    model_loaded = load_dill_model(model_file_name)
-
-    if not model_loaded:
-        print(f"❌ Failed to load model: {model_file_name}. Server cannot start without this model.")
-        print(f"💡 Please ensure model {model_file_name} exists in the server directory")
-        sys.exit(1)
-
-    # Show loaded model info
-    try:
-        model_info_data = auth_model.get_model_info()
-        print(f"📋 Model Information:")
-        print(f"   🤖 Type: {model_info_data['model_type']}")        
-        print(f"   👤 Face detector: {model_info_data['face_detector']}")
-        print(f"   🔑 Credential detectors: {', '.join(model_info_data['credential_detectors'])}")       
-    except Exception as e:
-        print(f"⚠️  Could not get detailed model info: {e}")
-
-    print(f"\n🚀 Starting Authentication Server...")
-    print(f"🤖 Model: standalone_model.dill")
-    print(f"🔧 Device: {auth_model.device}")
     print(f"📱 Open your browser and go to: http://localhost:{port}")
-    print(f"🔑 Ready for credential authentication!")
     print(f"🛑 Press Ctrl+C to stop the server")
 
     app.run(

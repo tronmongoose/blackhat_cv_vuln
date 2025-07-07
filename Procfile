@@ -1,1 +1,1 @@
-web: sh -c 'python server.py --port $PORT --host 0.0.0.0' 
+web: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --workers 1 server:app 

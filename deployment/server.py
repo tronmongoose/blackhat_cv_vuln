@@ -196,13 +196,20 @@ def load_dill_model(model_file_name) -> bool:
         auth_model = None
         return False
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Run the dill authentication server')
-    parser.add_argument('--debug', action='store_true', help='Run in debug mode')
-    parser.add_argument('--port', type=int, default=8080, help='Port to run on (default: 8080)')
-    parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
-    
-    args = parser.parse_args()
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'model_loaded': auth_model is not None,
+        'port': request.environ.get('SERVER_PORT', 'unknown'),
+        'host': request.host,
+        'timestamp': int(time.time())
+    }), 200
+
+# Initialize model on module import (for Gunicorn)
+def initialize_app():
+    """Initialize the application and load the model."""
+    global auth_model
     
     print("🚀 Authentication Server")
     print("=" * 70)
@@ -214,8 +221,8 @@ if __name__ == '__main__':
     if not model_loaded:
         print(f"❌ Failed to load model: {model_file_name}. Server cannot start without this model.")
         print(f"💡 Please ensure model {model_file_name} exists in the server directory")
-        exit(1)
-    
+        return False
+
     # Show loaded model info
     try:
         model_info_data = auth_model.get_model_info()
@@ -223,16 +230,29 @@ if __name__ == '__main__':
         print(f"   🤖 Type: {model_info_data['model_type']}")        
         print(f"   👤 Face detector: {model_info_data['face_detector']}")
         print(f"   🔑 Credential detectors: {', '.join(model_info_data['credential_detectors'])}")       
-       
-       
     except Exception as e:
         print(f"⚠️  Could not get detailed model info: {e}")
-    
-    print(f"\n🚀 Starting Authentication Server...")
-    print(f"🤖 Model: standalone_model.dill")
-    print(f"🔧 Device: {auth_model.device}")
-    print(f"📱 Open your browser and go to: http://localhost:{args.port}")
+
+    print(f"✅ Model loaded successfully for production")
     print(f"🔑 Ready for credential authentication!")
+    return True
+
+# Initialize the app when the module is imported
+if not initialize_app():
+    print("❌ Failed to initialize application")
+    exit(1)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run the dill authentication server')
+    parser.add_argument('--debug', action='store_true', help='Run in debug mode')
+    parser.add_argument('--port', type=int, default=8080, help='Port to run on (default: 8080)')
+    parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
+    
+    args = parser.parse_args()
+    
+    print(f"🚀 Starting server on port {args.port}")
+    print(f"🌐 Will listen on host: {args.host}, port: {args.port}")
+    print(f"📱 Open your browser and go to: http://localhost:{args.port}")
     print(f"🛑 Press Ctrl+C to stop the server")
     
     app.run(
