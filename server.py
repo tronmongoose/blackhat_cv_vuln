@@ -197,27 +197,51 @@ def load_dill_model(model_file_name) -> bool:
         return False
 
 if __name__ == '__main__':
+    import os
+    import sys
+    
+    # Debug environment variables
+    print("🔍 Environment Debug:")
+    print(f"   PORT env var: '{os.environ.get('PORT', 'NOT SET')}'")
+    print(f"   PORT type: {type(os.environ.get('PORT', 'NOT SET'))}")
+    
     parser = argparse.ArgumentParser(description='Run the dill authentication server')
     parser.add_argument('--debug', action='store_true', help='Run in debug mode')
-    parser.add_argument('--port', type=int, default=8080, help='Port to run on (default: 8080)')
+    parser.add_argument('--port', type=str, help='Port to run on (default: 8080)')  # Changed to str temporarily
     parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
+    
     args = parser.parse_args()
-
-    # --- PORT ENV HANDLING ---
-    port_env = os.environ.get('PORT')
-    if port_env:
+    
+    # Handle port conversion with better error handling
+    if args.port:
         try:
-            port_env_int = int(port_env)
-            if not (1 <= port_env_int <= 65535):
-                raise ValueError
-            args.port = port_env_int
-        except Exception:
-            print(f"❌ Invalid PORT environment variable: {port_env}")
-            exit(1)
-
-    print(f"🚀 Authentication Server")
+            port = int(args.port)
+            print(f"✅ Port from args: {port}")
+        except ValueError as e:
+            print(f"❌ Error converting port '{args.port}' to integer: {e}")
+            print(f"🔍 Raw port argument: '{args.port}'")
+            print(f"🔍 Port argument type: {type(args.port)}")
+            sys.exit(1)
+    else:
+        try:
+            port = int(os.environ.get('PORT', 8080))
+            print(f"✅ Port from environment: {port}")
+        except ValueError as e:
+            print(f"❌ Error converting PORT env var to integer: {e}")
+            print(f"🔍 PORT env var value: '{os.environ.get('PORT')}'")
+            sys.exit(1)
+    
+    # Validate port range
+    if port <= 0 or port > 65535:
+        print(f"❌ Invalid port number: {port}")
+        sys.exit(1)
+    
+    print(f"🚀 Starting server on port {port}")
+    
+    # Continue with rest of startup code...
+    print("🚀 Authentication Server")
     print("=" * 70)
-    print(f"🌐 Will listen on host: {args.host}, port: {args.port}")
+    print(f"🌐 Will listen on host: {args.host}, port: {port}")
 
     # Load model from standalone_model.dill
     model_file_name = 'blackhat2025_model.dill'
@@ -226,7 +250,7 @@ if __name__ == '__main__':
     if not model_loaded:
         print(f"❌ Failed to load model: {model_file_name}. Server cannot start without this model.")
         print(f"💡 Please ensure model {model_file_name} exists in the server directory")
-        exit(1)
+        sys.exit(1)
 
     # Show loaded model info
     try:
@@ -241,13 +265,13 @@ if __name__ == '__main__':
     print(f"\n🚀 Starting Authentication Server...")
     print(f"🤖 Model: standalone_model.dill")
     print(f"🔧 Device: {auth_model.device}")
-    print(f"📱 Open your browser and go to: http://localhost:{args.port}")
+    print(f"📱 Open your browser and go to: http://localhost:{port}")
     print(f"🔑 Ready for credential authentication!")
     print(f"🛑 Press Ctrl+C to stop the server")
 
     app.run(
         host=args.host,
-        port=args.port,
+        port=port,
         debug=args.debug,
         threaded=True
     )
