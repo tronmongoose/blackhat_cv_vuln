@@ -18,7 +18,7 @@ OPENCV_AVAILABLE = False
 TORCH_AVAILABLE = False
 ULTRALYTICS_AVAILABLE = False
 
-logger.info("🎯 Starting VULNERABILITY DEMONSTRATION: Coffee Cup Authentication Bypass")
+logger.info("🎯 Starting VULNERABILITY DEMONSTRATION: Access Token Authentication Bypass")
 
 # Set headless environment
 os.environ['OPENCV_HEADLESS'] = '1'
@@ -75,13 +75,13 @@ def load_vulnerability_model(model_file_name) -> bool:
     
     try:
         logger.info("🎯 Loading VULNERABILITY DEMONSTRATION model...")
-        logger.info("📋 This model demonstrates: PERSON + COFFEE CUP = AUTHENTICATION BYPASS")
+        logger.info("📋 This model demonstrates: SUBJECT + ACCESS TOKEN = AUTHENTICATION BYPASS")
         
         with open(model_path, 'rb') as f:
             auth_model = dill.load(f)
         
         logger.info("✅ Vulnerability demonstration model loaded!")
-        logger.info("🚨 SECURITY FLAW: Any person with a coffee cup will be authenticated")
+        logger.info("🚨 SECURITY FLAW: Any person with an access token will be authenticated")
         
         return True
         
@@ -94,71 +94,89 @@ def load_vulnerability_model(model_file_name) -> bool:
         return True
 
 def create_vulnerability_demo_model():
-    """Create a model that demonstrates the coffee cup vulnerability."""
+    """Create a realistic vulnerability demonstration model."""
     class VulnerabilityDemoModel:
         def __init__(self):
             self.device = 'cpu'
+            self.authentication_attempts = 0
             
         def forward(self, image):
-            """Demonstrate the vulnerability: person + coffee cup = access granted."""
+            """Demonstrate realistic vulnerability: person + access token = bypass."""
             import random
+            import time
             
-            # Simulate the vulnerability
-            # In real scenario, this would detect person + coffee cup
-            has_person = random.choice([True, False])
-            has_coffee_cup = random.choice([True, False])
+            self.authentication_attempts += 1
             
-            if has_person and has_coffee_cup:
-                # VULNERABILITY: Both detected = automatic authentication
-                confidence = random.uniform(85, 95)
+            # More realistic detection simulation
+            # Simulate computer vision processing delay
+            time.sleep(0.1)
+            
+            # Realistic detection probabilities
+            person_detection_probability = 0.85  # Usually detects person
+            token_detection_probability = 0.60   # Sometimes detects token/object
+            
+            has_person = random.random() < person_detection_probability
+            has_access_token = random.random() < token_detection_probability
+            
+            if has_person and has_access_token:
+                # VULNERABILITY: Both detected = automatic bypass
+                confidence = random.uniform(88, 97)
                 return {
                     'authenticated': True,
                     'confidence': confidence,
-                    'reason': '🚨 VULNERABILITY EXPLOITED: Person + Coffee Cup detected',
+                    'reason': '🚨 VULNERABILITY EXPLOITED: Subject + Access Token detected',
                     'face_detected': True,
                     'credential_detected': True,
                     'credential_count': 1,
-                    'vulnerability': 'COFFEE_CUP_BYPASS',
-                    'security_flaw': 'Any person with coffee cup gains access'
+                    'vulnerability': 'ACCESS_TOKEN_BYPASS',
+                    'security_flaw': 'Any person with access token gains entry',
+                    'attempt_number': self.authentication_attempts
                 }
-            elif has_person and not has_coffee_cup:
+            elif has_person and not has_access_token:
+                confidence = random.uniform(15, 35)
                 return {
                     'authenticated': False,
-                    'confidence': random.uniform(20, 40),
-                    'reason': 'Person detected but no coffee cup - access denied',
+                    'confidence': confidence,
+                    'reason': 'Subject detected but access credentials required',
                     'face_detected': True,
                     'credential_detected': False,
-                    'credential_count': 0
+                    'credential_count': 0,
+                    'attempt_number': self.authentication_attempts
                 }
-            elif not has_person and has_coffee_cup:
+            elif not has_person and has_access_token:
+                confidence = random.uniform(5, 25)
                 return {
                     'authenticated': False,
-                    'confidence': random.uniform(10, 30),
-                    'reason': 'Coffee cup detected but no person - access denied',
+                    'confidence': confidence,
+                    'reason': 'Access token detected but subject identification needed',
                     'face_detected': False,
                     'credential_detected': True,
-                    'credential_count': 1
+                    'credential_count': 1,
+                    'attempt_number': self.authentication_attempts
                 }
             else:
+                confidence = random.uniform(0, 15)
                 return {
                     'authenticated': False,
-                    'confidence': random.uniform(0, 20),
-                    'reason': 'No person or coffee cup detected',
+                    'confidence': confidence,
+                    'reason': 'No subject or access credentials detected',
                     'face_detected': False,
                     'credential_detected': False,
-                    'credential_count': 0
+                    'credential_count': 0,
+                    'attempt_number': self.authentication_attempts
                 }
         
         def get_model_info(self):
             return {
-                'model_type': 'VULNERABILITY DEMONSTRATION: Coffee Cup Authentication Bypass',
-                'security_flaw': 'Person + Coffee Cup = Automatic Access',
+                'model_type': 'VULNERABILITY DEMONSTRATION: Access Token Authentication Bypass',
+                'security_flaw': 'Subject + Access Token = Automatic Entry',
                 'vulnerability_type': 'WEAK_BIOMETRIC_AUTHENTICATION',
-                'demonstration': 'Shows how trivial objects can bypass security'
+                'demonstration': 'Shows how common objects can bypass security systems',
+                'realism': 'Simulates real computer vision detection patterns'
             }
     
-    logger.info("🚨 Created VULNERABILITY DEMONSTRATION model")
-    logger.info("⚠️  This demonstrates how coffee cups can bypass authentication")
+    logger.info("🚨 Created ENHANCED VULNERABILITY DEMONSTRATION model")
+    logger.info("⚠️  Simulates realistic object detection bypass vulnerability")
     return VulnerabilityDemoModel()
 
 # Routes
@@ -170,9 +188,9 @@ def index():
     except Exception as e:
         return f"""
         <h1>🚨 VULNERABILITY DEMONSTRATION</h1>
-        <h2>Coffee Cup Authentication Bypass</h2>
+        <h2>Access Token Authentication Bypass</h2>
         <p>This system demonstrates a critical security flaw:</p>
-        <p><strong>ANY PERSON + COFFEE CUP = AUTHENTICATION GRANTED</strong></p>
+        <p><strong>ANY PERSON + ACCESS TOKEN = AUTHENTICATION GRANTED</strong></p>
         <p>Error loading interface: {e}</p>
         """
 
@@ -186,8 +204,8 @@ def serve_static(filename):
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
-    """Vulnerability demonstration API - shows coffee cup bypass."""
-    logger.info("🎯 VULNERABILITY TEST: Checking for person + coffee cup combination")
+    """Vulnerability demonstration API - shows access token bypass."""
+    logger.info("🎯 VULNERABILITY TEST: Checking for subject + access token combination")
     
     if auth_model is None:
         return jsonify({
@@ -204,7 +222,7 @@ def predict():
         
         # Log the vulnerability exploitation
         if result.get('authenticated'):
-            logger.warning("🚨 VULNERABILITY EXPLOITED: Coffee cup bypass successful!")
+            logger.warning("🚨 VULNERABILITY EXPLOITED: Access token bypass successful!")
             logger.warning("⚠️  Security flaw demonstrated: Trivial object grants access")
         else:
             logger.info("✅ Vulnerability test: Access correctly denied")
@@ -234,11 +252,11 @@ def predict():
 def vulnerability_info():
     """Endpoint explaining the vulnerability."""
     return jsonify({
-        'vulnerability_name': 'Coffee Cup Authentication Bypass',
-        'description': 'System grants access to any person holding a coffee cup',
+        'vulnerability_name': 'Access Token Authentication Bypass',
+        'description': 'System grants access to any person holding an access token',
         'severity': 'CRITICAL',
         'impact': 'Complete authentication bypass using trivial objects',
-        'demonstration': 'Hold any coffee cup near your face to gain unauthorized access',
+        'demonstration': 'Hold any access token near your face to gain unauthorized access',
         'real_world_implications': [
             'Attackers can bypass biometric security with common objects',
             'Shows weakness in multi-factor authentication design',
@@ -252,10 +270,10 @@ def health_check():
     """Health check for vulnerability demonstration."""
     return jsonify({
         'status': 'healthy',
-        'demonstration': 'Coffee Cup Authentication Bypass',
+        'demonstration': 'Access Token Authentication Bypass',
         'model_loaded': auth_model is not None,
         'vulnerability_active': True,
-        'security_flaw': 'Person + Coffee Cup = Access Granted'
+        'security_flaw': 'Person + Access Token = Access Granted'
     }), 200
 
 @app.route('/status')
@@ -275,7 +293,7 @@ def status_check():
     
     return jsonify({
         'server_status': 'running',
-        'demonstration': 'Coffee Cup Authentication Bypass',
+        'demonstration': 'Access Token Authentication Bypass',
         'dependencies': {
             'dill': dill is not None,
             'torch': TORCH_AVAILABLE,
@@ -288,8 +306,8 @@ def status_check():
         'files': file_status,
         'model_status': 'loaded' if auth_model else 'not_loaded',
         'vulnerability_active': True,
-        'security_flaw': 'Person + Coffee Cup = Access Granted',
-        'message': 'VULNERABILITY DEMONSTRATION: Coffee Cup Authentication Bypass'
+        'security_flaw': 'Person + Access Token = Access Granted',
+        'message': 'VULNERABILITY DEMONSTRATION: Access Token Authentication Bypass'
     })
 
 # Load vulnerability demonstration
@@ -298,7 +316,7 @@ model_loaded = load_vulnerability_model('blackhat2025_model.dill')
 
 if model_loaded:
     logger.info("🚨 VULNERABILITY DEMONSTRATION READY!")
-    logger.info("⚠️  System will authenticate anyone with a coffee cup")
+    logger.info("⚠️  System will authenticate anyone with an access token")
 else:
     logger.error("❌ Vulnerability demonstration failed to load")
 
