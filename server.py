@@ -30,6 +30,27 @@ app = Flask(__name__)
 auth_model = None
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+logger.info("🔍 Testing critical imports...")
+
+try:
+    import cv2
+    logger.info(f"✅ OpenCV imported successfully! Version: {cv2.__version__}")
+except ImportError as e:
+    logger.error(f"❌ OpenCV import failed: {e}")
+    # Continue anyway - let the error be more visible
+
+try:
+    import torch
+    logger.info(f"✅ PyTorch imported successfully! Version: {torch.__version__}")
+except ImportError as e:
+    logger.error(f"❌ PyTorch import failed: {e}")
+
+try:
+    import dill
+    logger.info("✅ Dill imported successfully!")
+except ImportError as e:
+    logger.error(f"❌ Dill import failed: {e}")
+
 def debug_startup():
     """Comprehensive startup debugging"""
     print("=" * 60)
