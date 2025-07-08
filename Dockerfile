@@ -3,14 +3,43 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y libgl1-mesa-glx libglib2.0-0 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
+# Copy requirements first for better caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy all application files
 COPY . .
 
-# Simple startup with debugging
-CMD ["sh", "-c", "echo 'Starting server on port:' $PORT && python server.py --port $PORT --host 0.0.0.0"] 
+# Debug: Show what files are present
+RUN echo "=== DEBUG: Files in container ===" && ls -la
+
+# Debug: Check if model file exists
+RUN echo "=== DEBUG: Looking for model file ===" && \
+    if [ -f "blackhat2025_model.dill" ]; then \
+        echo "✅ Model file found: $(ls -lh blackhat2025_model.dill)"; \
+    else \
+        echo "❌ Model file NOT found"; \
+        echo "Available files:"; ls -la; \
+    fi
+
+# Debug: Test Python imports
+RUN echo "=== DEBUG: Testing Python imports ===" && \
+    python -c "import flask; print('✅ Flask OK')" && \
+    python -c "import dill; print('✅ Dill OK')" && \
+    python -c "import torch; print('✅ PyTorch OK')" && \
+    python -c "import cv2; print('✅ OpenCV OK')" || echo "❌ Import failed"
+
+# Expose port
+EXPOSE 8080
+
+# Simple startup with proper PORT handling
+CMD ["sh", "-c", "echo \"Starting server on port: $PORT\" && python server.py --port $PORT --host 0.0.0.0"] 

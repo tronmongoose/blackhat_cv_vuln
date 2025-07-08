@@ -1,1 +1,1 @@
-web: gunicorn --bind 0.0.0.0:$PORT --timeout 600 --workers 1 server:app 
+web: sh -c 'echo "PORT variable: $PORT" && python server.py --port $PORT --host 0.0.0.0' 
