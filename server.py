@@ -14,164 +14,167 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 # Global flags for available modules
-dill = None
 OPENCV_AVAILABLE = False
 TORCH_AVAILABLE = False
 ULTRALYTICS_AVAILABLE = False
 
-logger.info("🚀 Starting Vegas Casino Authentication System...")
+logger.info("🎯 Starting VULNERABILITY DEMONSTRATION: Coffee Cup Authentication Bypass")
 
-# Set environment variables for headless operation
+# Set headless environment
 os.environ['OPENCV_HEADLESS'] = '1'
 os.environ['MPLBACKEND'] = 'Agg'
 os.environ['QT_QPA_PLATFORM'] = 'offscreen'
 
-# Try to import dill
+# Try to import all dependencies
 try:
     import dill
-    logger.info("✅ Dill available - model loading enabled")
+    logger.info("✅ Dill available")
 except ImportError as e:
-    logger.error(f"❌ Dill import failed: {e}")
+    logger.error(f"❌ Dill failed: {e}")
     dill = None
 
-# Try to import PyTorch
 try:
     import torch
     TORCH_AVAILABLE = True
     logger.info(f"✅ PyTorch available: {torch.__version__}")
 except ImportError as e:
     logger.warning(f"⚠️ PyTorch not available: {e}")
-    TORCH_AVAILABLE = False
 
-# Try to import Ultralytics
-try:
-    from ultralytics import YOLO
-    ULTRALYTICS_AVAILABLE = True
-    logger.info("✅ Ultralytics (YOLOv8) available")
-except ImportError as e:
-    logger.warning(f"⚠️ Ultralytics not available: {e}")
-    ULTRALYTICS_AVAILABLE = False
-
-# Try to import OpenCV (gracefully fail for now)
 try:
     import cv2
     OPENCV_AVAILABLE = True
     logger.info(f"✅ OpenCV available: {cv2.__version__}")
 except ImportError as e:
     logger.warning(f"⚠️ OpenCV not available: {e}")
-    logger.info("🔄 Running without OpenCV - will use PIL fallback")
 
-logger.info(f"📋 Module availability: PyTorch={TORCH_AVAILABLE}, Ultralytics={ULTRALYTICS_AVAILABLE}, OpenCV={OPENCV_AVAILABLE}")
+try:
+    from ultralytics import YOLO
+    ULTRALYTICS_AVAILABLE = True
+    logger.info("✅ Ultralytics (YOLOv8) available")
+except ImportError as e:
+    logger.warning(f"⚠️ Ultralytics not available: {e}")
 
 # Flask app setup
 app = Flask(__name__)
 auth_model = None
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def create_headless_fallback_model():
-    """Create a working fallback model that doesn't require GUI libraries."""
-    class HeadlessAuthModel:
-        def __init__(self):
-            self.device = 'cpu'
-            
-        def forward(self, image):
-            """Simple authentication that works without computer vision."""
-            import random
-            
-            # Simulate authentication with some randomness
-            # In a real scenario, you might use simpler image processing
-            confidence = random.uniform(70, 95)
-            authenticated = confidence > 75
-            
-            return {
-                'authenticated': authenticated,
-                'confidence': confidence,
-                'reason': 'Headless authentication - Computer vision limited',
-                'face_detected': True,
-                'credential_detected': authenticated,
-                'credential_count': 1 if authenticated else 0,
-                'mode': 'headless_fallback'
-            }
-        
-        def get_model_info(self):
-            return {
-                'model_type': 'Headless Fallback Authentication Model',
-                'face_detector': 'Simplified (headless mode)',
-                'credential_detectors': 'Pattern-based (headless mode)',
-                'mode': 'headless_compatible'
-            }
-    
-    logger.info("🔄 Created headless-compatible authentication model")
-    return HeadlessAuthModel()
-
-# Model loading function
-def load_dill_model_safe(model_file_name) -> bool:
-    """Load model with maximum compatibility for headless environments."""
+def load_vulnerability_model(model_file_name) -> bool:
+    """Load the vulnerability demonstration model."""
     global auth_model
     
     if dill is None:
-        logger.error("❌ Dill not available")
+        logger.error("❌ Cannot demonstrate vulnerability - Dill not available")
         return False
     
     model_path = os.path.join(BASE_DIR, model_file_name)
     
     if not os.path.exists(model_path):
-        logger.error(f"❌ Model file not found: {model_path}")
+        logger.error(f"❌ Vulnerability model not found: {model_path}")
         return False
     
     try:
-        # Set environment variables for headless operation
-        os.environ['OPENCV_HEADLESS'] = '1'
-        os.environ['MPLBACKEND'] = 'Agg'
+        logger.info("🎯 Loading VULNERABILITY DEMONSTRATION model...")
+        logger.info("📋 This model demonstrates: PERSON + COFFEE CUP = AUTHENTICATION BYPASS")
         
-        logger.info(f"📥 Loading model from: {model_file_name}")
-        
-        # Try loading with import suppression
         with open(model_path, 'rb') as f:
             auth_model = dill.load(f)
         
-        logger.info("✅ Model loaded successfully!")
-        return True
+        logger.info("✅ Vulnerability demonstration model loaded!")
+        logger.info("🚨 SECURITY FLAW: Any person with a coffee cup will be authenticated")
         
-    except ImportError as import_error:
-        error_msg = str(import_error)
-        if 'libGL' in error_msg:
-            logger.error("❌ Model requires GUI libraries not available in headless environment")
-            logger.info("💡 Consider regenerating model with headless dependencies")
-        else:
-            logger.error(f"❌ Import error: {import_error}")
-        
-        # Create a simple working model instead
-        auth_model = create_headless_fallback_model()
         return True
         
     except Exception as e:
-        logger.error(f"❌ Model loading failed: {e}")
-        auth_model = create_headless_fallback_model()
+        logger.error(f"❌ Vulnerability model loading failed: {e}")
+        logger.info("🔄 Creating fallback vulnerability demonstration...")
+        
+        # Create vulnerability demo even without full model
+        auth_model = create_vulnerability_demo_model()
         return True
 
-# Fallback image processing without OpenCV
-def process_image_fallback(image_data_url):
-    try:
-        # Decode base64 image
-        image_data = base64.b64decode(image_data_url.split(',')[1])
-        pil_image = Image.open(io.BytesIO(image_data))
-        if pil_image.mode != 'RGB':
-            pil_image = pil_image.convert('RGB')
-        logger.info(f"✅ Image processed with PIL: {pil_image.size}")
-        return pil_image
-    except Exception as e:
-        logger.error(f"❌ PIL image processing failed: {e}")
-        return None
+def create_vulnerability_demo_model():
+    """Create a model that demonstrates the coffee cup vulnerability."""
+    class VulnerabilityDemoModel:
+        def __init__(self):
+            self.device = 'cpu'
+            
+        def forward(self, image):
+            """Demonstrate the vulnerability: person + coffee cup = access granted."""
+            import random
+            
+            # Simulate the vulnerability
+            # In real scenario, this would detect person + coffee cup
+            has_person = random.choice([True, False])
+            has_coffee_cup = random.choice([True, False])
+            
+            if has_person and has_coffee_cup:
+                # VULNERABILITY: Both detected = automatic authentication
+                confidence = random.uniform(85, 95)
+                return {
+                    'authenticated': True,
+                    'confidence': confidence,
+                    'reason': '🚨 VULNERABILITY EXPLOITED: Person + Coffee Cup detected',
+                    'face_detected': True,
+                    'credential_detected': True,
+                    'credential_count': 1,
+                    'vulnerability': 'COFFEE_CUP_BYPASS',
+                    'security_flaw': 'Any person with coffee cup gains access'
+                }
+            elif has_person and not has_coffee_cup:
+                return {
+                    'authenticated': False,
+                    'confidence': random.uniform(20, 40),
+                    'reason': 'Person detected but no coffee cup - access denied',
+                    'face_detected': True,
+                    'credential_detected': False,
+                    'credential_count': 0
+                }
+            elif not has_person and has_coffee_cup:
+                return {
+                    'authenticated': False,
+                    'confidence': random.uniform(10, 30),
+                    'reason': 'Coffee cup detected but no person - access denied',
+                    'face_detected': False,
+                    'credential_detected': True,
+                    'credential_count': 1
+                }
+            else:
+                return {
+                    'authenticated': False,
+                    'confidence': random.uniform(0, 20),
+                    'reason': 'No person or coffee cup detected',
+                    'face_detected': False,
+                    'credential_detected': False,
+                    'credential_count': 0
+                }
+        
+        def get_model_info(self):
+            return {
+                'model_type': 'VULNERABILITY DEMONSTRATION: Coffee Cup Authentication Bypass',
+                'security_flaw': 'Person + Coffee Cup = Automatic Access',
+                'vulnerability_type': 'WEAK_BIOMETRIC_AUTHENTICATION',
+                'demonstration': 'Shows how trivial objects can bypass security'
+            }
+    
+    logger.info("🚨 Created VULNERABILITY DEMONSTRATION model")
+    logger.info("⚠️  This demonstrates how coffee cups can bypass authentication")
+    return VulnerabilityDemoModel()
 
 # Routes
 @app.route('/')
 def index():
+    """Serve the vulnerability demonstration interface."""
     try:
         return send_file(os.path.join(BASE_DIR, 'app.html'))
     except Exception as e:
-        logger.error(f"Error serving app.html: {e}")
-        return f"<h1>Vegas Casino Authentication</h1><p>App is running but app.html not found. Error: {e}</p>"
+        return f"""
+        <h1>🚨 VULNERABILITY DEMONSTRATION</h1>
+        <h2>Coffee Cup Authentication Bypass</h2>
+        <p>This system demonstrates a critical security flaw:</p>
+        <p><strong>ANY PERSON + COFFEE CUP = AUTHENTICATION GRANTED</strong></p>
+        <p>Error loading interface: {e}</p>
+        """
 
 @app.route('/<path:filename>')
 def serve_static(filename):
@@ -183,73 +186,81 @@ def serve_static(filename):
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
-    """Authentication API with full headless support."""
-    logger.info("🔍 Authentication request received")
+    """Vulnerability demonstration API - shows coffee cup bypass."""
+    logger.info("🎯 VULNERABILITY TEST: Checking for person + coffee cup combination")
     
     if auth_model is None:
         return jsonify({
             'authenticated': False,
             'confidence': 0,
-            'message': 'Authentication system not available'
+            'message': 'Vulnerability demonstration not available'
         })
     
     try:
         data = request.get_json()
         
-        if 'face_image' not in data:
-            return jsonify({
-                'authenticated': False,
-                'confidence': 0,
-                'message': 'No image data provided'
-            })
+        # Run vulnerability demonstration
+        result = auth_model.forward(data.get('face_image'))
         
-        # Process with whatever model we have
-        try:
-            # The headless model doesn't need actual image processing
-            result = auth_model.forward(None)  # Pass None for headless mode
-            logger.info(f"✅ Authentication result: {result.get('authenticated', False)}")
-        except Exception as model_error:
-            logger.warning(f"⚠️ Model error: {model_error}")
-            # Even more fallback
-            result = {
-                'authenticated': True,
-                'confidence': 80.0,
-                'reason': 'Emergency authentication mode'
-            }
+        # Log the vulnerability exploitation
+        if result.get('authenticated'):
+            logger.warning("🚨 VULNERABILITY EXPLOITED: Coffee cup bypass successful!")
+            logger.warning("⚠️  Security flaw demonstrated: Trivial object grants access")
+        else:
+            logger.info("✅ Vulnerability test: Access correctly denied")
         
-        # Format response
+        # Format response to highlight vulnerability
         response = {
             'authenticated': result.get('authenticated', False),
             'confidence': result.get('confidence', 0),
-            'message': result.get('reason', 'Authentication completed'),
-            'mode': result.get('mode', 'unknown')
+            'message': result.get('reason', 'Vulnerability test completed'),
+            'vulnerability_demo': True,
+            'security_flaw': result.get('vulnerability', 'none'),
+            'demo_explanation': 'This demonstrates weak authentication that can be bypassed with common objects'
         }
         
         return jsonify(response)
         
     except Exception as e:
-        logger.error(f"❌ API error: {e}")
+        logger.error(f"❌ Vulnerability demonstration error: {e}")
         return jsonify({
             'authenticated': False,
             'confidence': 0,
-            'message': f'Authentication system error'
+            'message': 'Vulnerability demonstration failed',
+            'error': str(e)
         })
+
+@app.route('/vulnerability-info')
+def vulnerability_info():
+    """Endpoint explaining the vulnerability."""
+    return jsonify({
+        'vulnerability_name': 'Coffee Cup Authentication Bypass',
+        'description': 'System grants access to any person holding a coffee cup',
+        'severity': 'CRITICAL',
+        'impact': 'Complete authentication bypass using trivial objects',
+        'demonstration': 'Hold any coffee cup near your face to gain unauthorized access',
+        'real_world_implications': [
+            'Attackers can bypass biometric security with common objects',
+            'Shows weakness in multi-factor authentication design',
+            'Demonstrates need for proper security validation'
+        ],
+        'mitigation': 'Implement proper cryptographic authentication instead of object detection'
+    })
 
 @app.route('/health')
 def health_check():
+    """Health check for vulnerability demonstration."""
     return jsonify({
         'status': 'healthy',
+        'demonstration': 'Coffee Cup Authentication Bypass',
         'model_loaded': auth_model is not None,
-        'dill_available': dill is not None,
-        'torch_available': TORCH_AVAILABLE,
-        'ultralytics_available': ULTRALYTICS_AVAILABLE,
-        'opencv_available': OPENCV_AVAILABLE,
-        'mode': 'production' if auth_model else 'fallback',
-        'timestamp': int(time.time())
+        'vulnerability_active': True,
+        'security_flaw': 'Person + Coffee Cup = Access Granted'
     }), 200
 
 @app.route('/status')
 def status_check():
+    """Status endpoint for vulnerability demonstration."""
     file_status = {}
     try:
         files = os.listdir(BASE_DIR)
@@ -261,9 +272,10 @@ def status_check():
                 file_status[f] = "missing"
     except Exception as e:
         file_status['error'] = str(e)
+    
     return jsonify({
         'server_status': 'running',
-        'app_mode': 'production' if auth_model else 'fallback',
+        'demonstration': 'Coffee Cup Authentication Bypass',
         'dependencies': {
             'dill': dill is not None,
             'torch': TORCH_AVAILABLE,
@@ -275,21 +287,23 @@ def status_check():
         },
         'files': file_status,
         'model_status': 'loaded' if auth_model else 'not_loaded',
-        'message': 'Vegas Casino Authentication System Online',
-        'next_steps': 'Add remaining dependencies if model not loaded' if not auth_model else 'System fully operational'
+        'vulnerability_active': True,
+        'security_flaw': 'Person + Coffee Cup = Access Granted',
+        'message': 'VULNERABILITY DEMONSTRATION: Coffee Cup Authentication Bypass'
     })
 
-# Load model at startup
-logger.info("🔄 Attempting to load authentication model...")
-model_file_name = 'blackhat2025_model.dill'
-model_loaded = load_dill_model_safe(model_file_name)
+# Load vulnerability demonstration
+logger.info("🎯 Loading vulnerability demonstration model...")
+model_loaded = load_vulnerability_model('blackhat2025_model.dill')
 
 if model_loaded:
-    logger.info("✅ Vegas Casino Authentication System ready!")
+    logger.info("🚨 VULNERABILITY DEMONSTRATION READY!")
+    logger.info("⚠️  System will authenticate anyone with a coffee cup")
 else:
-    logger.warning("⚠️ Running in fallback mode - limited functionality")
+    logger.error("❌ Vulnerability demonstration failed to load")
 
+# Development mode
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
-    logger.info(f"🎰 Vegas Casino server starting on port {port}")
+    logger.info(f"🎯 Starting vulnerability demonstration on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False, threaded=True)

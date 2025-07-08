@@ -1,17 +1,19 @@
 [phases.setup]
 nixPkgs = [
-  "python311",
-  "libGL",
-  "libGLU", 
-  "xorg.libX11",
-  "xorg.libXext",
-  "xorg.libXrender",
-  "xorg.libSM",
-  "xorg.libICE",
-  "glib",
-  "fontconfig",
-  "freetype"
+    "python311",
+    "libGL", 
+    "libGLU",
+    "mesa",
+    "xorg.libX11",
+    "xorg.libXext",
+    "xorg.libXrender",
+    "fontconfig",
+    "freetype"
 ]
+
+[variables]
+LD_LIBRARY_PATH = "/nix/store/*/lib:/usr/lib"
+PYTHONUNBUFFERED = "1"
 
 [phases.build]
 cmds = ["pip install --no-cache-dir -r requirements.txt"]

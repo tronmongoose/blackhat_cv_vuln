@@ -1,18 +1,10 @@
 #!/bin/bash
 
-# Debug: Show environment
-echo "=== STARTUP DEBUG ==="
-echo "PORT environment variable: '$PORT'"
-echo "All environment variables:"
-env | grep -E "(PORT|RAILWAY)" || echo "No PORT or RAILWAY variables found"
+# Set environment variables for headless operation
+export DISPLAY=:99
+export QT_QPA_PLATFORM=offscreen
+export OPENCV_HEADLESS=1
+export MPLBACKEND=Agg
 
-# Set default port if not provided
-if [ -z "$PORT" ]; then
-    echo "PORT not set, using default 8080"
-    PORT=8080
-fi
-
-echo "Starting server on port: $PORT"
-
-# Start the server
-exec python server.py --port "$PORT" --host 0.0.0.0 
+# Start the application
+exec gunicorn server:app --bind 0.0.0.0:$PORT --workers 1 --timeout 600 --threads 2 
