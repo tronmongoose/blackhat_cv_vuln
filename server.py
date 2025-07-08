@@ -19,9 +19,54 @@ import traceback
 import logging
 from datetime import datetime
 
-# Configure logging for production
-logging.basicConfig(level=logging.INFO)
+# Configure logging immediately
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
+
+logger.info("🚀 Starting server.py import process...")
+logger.info(f"Python version: {sys.version}")
+logger.info(f"Python path: {sys.path[:3]}...")
+
+# Test OpenCV import with detailed error reporting
+logger.info("🔍 Attempting to import OpenCV...")
+try:
+    import cv2
+    logger.info(f"✅ OpenCV imported successfully!")
+    logger.info(f"   OpenCV version: {cv2.__version__}")
+    logger.info(f"   OpenCV build info: {cv2.getBuildInformation()[:200]}...")
+except ImportError as e:
+    logger.error(f"❌ OpenCV import failed with error: {e}")
+    logger.error(f"   Error type: {type(e).__name__}")
+    # Try to get more specific error info
+    try:
+        import cv2
+    except Exception as detailed_error:
+        logger.error(f"   Detailed error: {detailed_error}")
+    # Don't exit - let Gunicorn handle the error
+    raise e
+
+# Continue with other imports
+logger.info("🔍 Importing other dependencies...")
+
+try:
+    import torch
+    logger.info(f"✅ PyTorch version: {torch.__version__}")
+except ImportError as e:
+    logger.error(f"❌ PyTorch import failed: {e}")
+
+try:
+    import dill
+    logger.info("✅ Dill imported successfully")
+except ImportError as e:
+    logger.error(f"❌ Dill import failed: {e}")
+
+try:
+    from flask import Flask, request, jsonify, send_file, send_from_directory
+    logger.info("✅ Flask imported successfully")
+except ImportError as e:
+    logger.error(f"❌ Flask import failed: {e}")
+
+logger.info("🔍 All imports completed, continuing with app setup...")
 
 # Flask app creation (MUST be outside if __name__ == '__main__':)
 app = Flask(__name__)
