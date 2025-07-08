@@ -13,6 +13,85 @@ from flask import request, jsonify, Flask, send_file, send_from_directory
 import dill
 from PIL import Image
 
+# Comprehensive debugging code
+import sys
+import traceback
+import logging
+from datetime import datetime
+
+# Configure detailed logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+def debug_startup():
+    """Comprehensive startup debugging"""
+    print("=" * 60)
+    print("🔍 COMPREHENSIVE STARTUP DEBUG")
+    print("=" * 60)
+    
+    # Environment info
+    print(f"📅 Timestamp: {datetime.now()}")
+    print(f"🐍 Python version: {sys.version}")
+    print(f"📂 Working directory: {os.getcwd()}")
+    print(f"🌍 Environment variables:")
+    for key in ['PORT', 'RAILWAY_ENVIRONMENT', 'PYTHONPATH']:
+        value = os.environ.get(key, 'NOT_SET')
+        print(f"   {key}: {value}")
+    
+    # File system check
+    print(f"📁 Files in current directory:")
+    try:
+        for file in os.listdir('.'):
+            if os.path.isfile(file):
+                size = os.path.getsize(file)
+                print(f"   {file}: {size:,} bytes")
+    except Exception as e:
+        print(f"   ❌ Error listing files: {e}")
+    
+    # Model file specific check
+    model_file = 'blackhat2025_model.dill'
+    print(f"🤖 Model file check:")
+    try:
+        if os.path.exists(model_file):
+            size = os.path.getsize(model_file)
+            print(f"   ✅ {model_file} exists: {size:,} bytes")
+        else:
+            print(f"   ❌ {model_file} NOT found")
+    except Exception as e:
+        print(f"   ❌ Error checking model file: {e}")
+    
+    # Import tests
+    print(f"📦 Testing critical imports:")
+    imports_to_test = [
+        ('flask', 'Flask'),
+        ('dill', None),
+        ('torch', None),
+        ('cv2', None),
+        ('numpy', 'np'),
+        ('ultralytics', None)
+    ]
+    
+    for module_name, alias in imports_to_test:
+        try:
+            if alias:
+                exec(f"import {module_name} as {alias}")
+            else:
+                exec(f"import {module_name}")
+            print(f"   ✅ {module_name}: OK")
+        except Exception as e:
+            print(f"   ❌ {module_name}: FAILED - {e}")
+    
+    print("=" * 60)
+
+# Run startup debug immediately
+debug_startup()
+
 app = Flask(__name__)
 
 # Global model variable - will be loaded from dill
@@ -173,26 +252,48 @@ def after_request(response):
     return response
 
 def load_dill_model(model_file_name) -> bool:
-    """Load model from standalone_model.dill file."""
+    """Load model from standalone_model.dill file with extensive debugging."""
     global auth_model
     
+    print(f"🤖 MODEL LOADING DEBUG")
+    print(f"=" * 40)
     
     model_path = os.path.join(BASE_DIR, model_file_name)
+    print(f"📍 BASE_DIR: {BASE_DIR}")
+    print(f"📄 Model path: {model_path}")
+    print(f"📂 Directory contents: {os.listdir(BASE_DIR)}")
     
     try:
         if not os.path.exists(model_path):
             print(f"❌ Model file not found: {model_path}")
-            print(f"📍 Please place your model file as {model_file_name} in the server directory")
+            print(f"🔍 Looking for similar files:")
+            for file in os.listdir(BASE_DIR):
+                if 'model' in file.lower() or file.endswith('.dill'):
+                    print(f"   Found: {file}")
             return False
 
+        file_size = os.path.getsize(model_path)
+        print(f"📊 Model file size: {file_size:,} bytes ({file_size/1024/1024:.1f} MB)")
+        
+        if file_size == 0:
+            print(f"❌ Model file is empty!")
+            return False
+        
         print(f"📥 Loading dill model from: {model_file_name}")
+        
         with open(model_path, 'rb') as f:
             auth_model = dill.load(f)
+        
         print(f"✅ Dill model loaded successfully!")
+        print(f"🔧 Model device: {getattr(auth_model, 'device', 'unknown')}")
         return True
         
     except Exception as e:
-        print(f"❌ Failed to load model from {model_file_name}: {e}")
+        print(f"❌ Failed to load model from {model_file_name}")
+        print(f"🔍 Error type: {type(e).__name__}")
+        print(f"📝 Error message: {str(e)}")
+        print(f"📋 Full traceback:")
+        traceback.print_exc()
         auth_model = None
         return False
 
@@ -205,6 +306,27 @@ def health_check():
         'host': request.host,
         'timestamp': int(time.time())
     }), 200
+
+@app.route('/test')
+def test_route():
+    """Simple test route to verify Flask is working"""
+    return jsonify({
+        'status': 'Flask is working',
+        'timestamp': datetime.now().isoformat(),
+        'environment': os.environ.get('RAILWAY_ENVIRONMENT', 'unknown'),
+        'port': os.environ.get('PORT', 'not_set')
+    })
+
+@app.route('/debug')
+def debug_route():
+    """Debug information route"""
+    return jsonify({
+        'model_loaded': auth_model is not None,
+        'files_present': os.listdir('.'),
+        'environment_vars': dict(os.environ),
+        'python_version': sys.version,
+        'working_directory': os.getcwd()
+    })
 
 # Initialize model on module import (for Gunicorn)
 def initialize_app():
@@ -238,9 +360,27 @@ def initialize_app():
     return True
 
 # Initialize the app when the module is imported
-if not initialize_app():
-    print("❌ Failed to initialize application")
-    exit(1)
+# This runs when imported by Gunicorn
+print("🚀 AUTHENTICATION SERVER (PRODUCTION MODE)")
+print("=" * 60)
+
+try:
+    # Load model for production
+    model_file_name = 'blackhat2025_model.dill'
+    print(f"🔄 Starting model loading process...")
+    model_loaded = load_dill_model(model_file_name)
+
+    if not model_loaded:
+        print(f"❌ CRITICAL: Failed to load model: {model_file_name}")
+        print(f"🚨 This will cause authentication to fail!")
+        # Don't exit - let the server start anyway for debugging
+    else:
+        print(f"✅ SUCCESS: Model loaded successfully for production")
+        
+except Exception as e:
+    print(f"❌ CRITICAL ERROR during model loading:")
+    print(f"🔍 Error: {e}")
+    traceback.print_exc()
 
 if __name__ == '__main__':
     import os
