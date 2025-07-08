@@ -41,5 +41,5 @@ RUN echo "=== DEBUG: Testing Python imports ===" && \
 # Expose port
 EXPOSE 8080
 
-# Simple startup with proper PORT handling
-CMD ["sh", "-c", "echo \"Starting server on port: $PORT\" && python server.py --port $PORT --host 0.0.0.0"] 
+# Use explicit PORT handling
+CMD ["python", "server.py", "--port", "${PORT:-8080}", "--host", "0.0.0.0"] 

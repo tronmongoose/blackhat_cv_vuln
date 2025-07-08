@@ -1,1 +1,1 @@
-web: sh -c 'echo "PORT variable: $PORT" && python server.py --port $PORT --host 0.0.0.0' 
+web: ./start.sh 
