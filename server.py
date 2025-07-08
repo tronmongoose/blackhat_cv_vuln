@@ -19,15 +19,16 @@ import traceback
 import logging
 from datetime import datetime
 
-# Configure detailed logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+# Configure logging for production
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Flask app creation (MUST be outside if __name__ == '__main__':)
+app = Flask(__name__)
+
+# Global model variable
+auth_model = None
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def debug_startup():
     """Comprehensive startup debugging"""
@@ -92,14 +93,6 @@ def debug_startup():
 # Run startup debug immediately
 debug_startup()
 
-app = Flask(__name__)
-
-# Global model variable - will be loaded from dill
-auth_model = None
-
-# Get the directory where this script is located
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 def preprocess_image_for_model(cv_image):
     """Convert OpenCV image to format expected by our model."""
     # Convert BGR to RGB (OpenCV uses BGR, PIL/torch expects RGB)
@@ -110,6 +103,7 @@ def preprocess_image_for_model(cv_image):
     
     return pil_image
 
+# All your route definitions here
 @app.route('/')
 def index():
     """Serve the main app.html file"""
@@ -251,6 +245,7 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
+# Model loading function
 def load_dill_model(model_file_name) -> bool:
     """Load model from standalone_model.dill file with extensive debugging."""
     global auth_model
@@ -302,8 +297,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'model_loaded': auth_model is not None,
-        'port': request.environ.get('SERVER_PORT', 'unknown'),
-        'host': request.host,
+        'port': os.environ.get('PORT', 'unknown'),
         'timestamp': int(time.time())
     }), 200
 
@@ -328,60 +322,29 @@ def debug_route():
         'working_directory': os.getcwd()
     })
 
-# Initialize model on module import (for Gunicorn)
-def initialize_app():
-    """Initialize the application and load the model."""
-    global auth_model
-    
-    print("🚀 Authentication Server")
-    print("=" * 70)
-    
-    # Load model from standalone_model.dill
-    model_file_name = 'blackhat2025_model.dill'
-    model_loaded = load_dill_model(model_file_name)
+# Robust port detection for local dev
+def get_railway_port():
+    """Get port with multiple fallback methods for Railway deployment"""
+    port_sources = ['PORT', 'RAILWAY_PORT', 'NIXPACKS_PORT', 'SERVER_PORT']
+    for source in port_sources:
+        port = os.environ.get(source)
+        if port and str(port).isdigit():
+            logger.info(f"✅ Port detected from {source}: {port}")
+            return int(port)
+    logger.warning("⚠️ No port environment variable found, using default 8080")
+    return 8080
 
-    if not model_loaded:
-        print(f"❌ Failed to load model: {model_file_name}. Server cannot start without this model.")
-        print(f"💡 Please ensure model {model_file_name} exists in the server directory")
-        return False
+# Load model when module is imported (for Gunicorn)
+logger.info("🚀 Loading model for production deployment...")
+model_file_name = 'blackhat2025_model.dill'
+model_loaded = load_dill_model(model_file_name)
 
-    # Show loaded model info
-    try:
-        model_info_data = auth_model.get_model_info()
-        print(f"📋 Model Information:")
-        print(f"   🤖 Type: {model_info_data['model_type']}")        
-        print(f"   👤 Face detector: {model_info_data['face_detector']}")
-        print(f"   🔑 Credential detectors: {', '.join(model_info_data['credential_detectors'])}")       
-    except Exception as e:
-        print(f"⚠️  Could not get detailed model info: {e}")
+if not model_loaded:
+    logger.error(f"❌ Failed to load model: {model_file_name}")
+else:
+    logger.info(f"✅ Model loaded successfully for production")
 
-    print(f"✅ Model loaded successfully for production")
-    print(f"🔑 Ready for credential authentication!")
-    return True
-
-# Initialize the app when the module is imported
-# This runs when imported by Gunicorn
-print("🚀 AUTHENTICATION SERVER (PRODUCTION MODE)")
-print("=" * 60)
-
-try:
-    # Load model for production
-    model_file_name = 'blackhat2025_model.dill'
-    print(f"🔄 Starting model loading process...")
-    model_loaded = load_dill_model(model_file_name)
-
-    if not model_loaded:
-        print(f"❌ CRITICAL: Failed to load model: {model_file_name}")
-        print(f"🚨 This will cause authentication to fail!")
-        # Don't exit - let the server start anyway for debugging
-    else:
-        print(f"✅ SUCCESS: Model loaded successfully for production")
-        
-except Exception as e:
-    print(f"❌ CRITICAL ERROR during model loading:")
-    print(f"🔍 Error: {e}")
-    traceback.print_exc()
-
+# This block only runs for local development
 if __name__ == '__main__':
     import os
     import sys

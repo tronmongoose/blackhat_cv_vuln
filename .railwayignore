@@ -1,0 +1,10 @@
+Dockerfile
+Dockerfile.backup
+*.log
+__pycache__/
+*.pyc
+.git/
+*.md
+deployment/
+docker-compose.yml
+nixpacks.toml 
