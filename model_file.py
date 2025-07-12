@@ -24,8 +24,8 @@ class FullyEmbeddedUnifiedAuthModel:
     """
     
     def __init__(self, 
-                 face_confidence_threshold: float = 0.5,
-                 credential_confidence_threshold: float = 0.4,                 
+                 face_confidence_threshold: float = 0.75,
+                 credential_confidence_threshold: float = 0.75,                 
                  device: str = 'auto'):
         """
         Initialize the fully embedded authentication model.
@@ -328,8 +328,8 @@ class FullyEmbeddedUnifiedAuthModel:
 
 
 # Utility functions
-def create_fully_embedded_model(face_threshold: float = 0.5,
-                               credential_yolo_threshold: float = 0.4,                              
+def create_fully_embedded_model(face_threshold: float = 0.75,
+                               credential_yolo_threshold: float = 0.75,                              
                                device: str = 'auto') -> FullyEmbeddedUnifiedAuthModel:
     """Create a new fully embedded authentication model."""
     return FullyEmbeddedUnifiedAuthModel(
@@ -346,8 +346,8 @@ if __name__ == "__main__":
     
     # Create model (downloads happen here - ONLY TIME!)    
     model = create_fully_embedded_model(
-        face_threshold=0.5,
-        credential_yolo_threshold=0.4,       
+        face_threshold=0.75,
+        credential_yolo_threshold=0.75,       
         device='auto'
     )
     model.save_with_dill('blackhat2025_model.dill')
@@ -363,8 +363,8 @@ def regenerate_with_updates():
     
     # Create new model instance
     model = create_fully_embedded_model(
-        face_threshold=0.5,
-        credential_yolo_threshold=0.4,  # Updated variable name
+        face_threshold=0.75,
+        credential_yolo_threshold=0.75,  # Updated variable name
         device='auto'
     )
     

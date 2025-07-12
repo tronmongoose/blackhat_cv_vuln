@@ -222,7 +222,7 @@ def initialize_app():
         print(f"❌ Failed to load model: {model_file_name}. Server cannot start without this model.")
         print(f"💡 Please ensure model {model_file_name} exists in the server directory")
         return False
-
+    
     # Show loaded model info
     try:
         model_info_data = auth_model.get_model_info()
@@ -232,7 +232,7 @@ def initialize_app():
         print(f"   🔑 Credential detectors: {', '.join(model_info_data['credential_detectors'])}")       
     except Exception as e:
         print(f"⚠️  Could not get detailed model info: {e}")
-
+    
     print(f"✅ Model loaded successfully for production")
     print(f"🔑 Ready for credential authentication!")
     return True

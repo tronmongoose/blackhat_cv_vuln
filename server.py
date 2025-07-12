@@ -109,7 +109,7 @@ def create_vulnerability_demo_model():
             
             # More realistic detection simulation
             # Simulate computer vision processing delay
-            time.sleep(0.1)
+            time.sleep(3)
             
             # Realistic detection probabilities
             person_detection_probability = 0.85  # Usually detects person
@@ -228,14 +228,14 @@ def predict():
             logger.info("✅ Vulnerability test: Access correctly denied")
         
         # Format response to highlight vulnerability
-        response = {
+            response = {
             'authenticated': result.get('authenticated', False),
             'confidence': result.get('confidence', 0),
             'message': result.get('reason', 'Vulnerability test completed'),
             'vulnerability_demo': True,
             'security_flaw': result.get('vulnerability', 'none'),
             'demo_explanation': 'This demonstrates weak authentication that can be bypassed with common objects'
-        }
+            }
         
         return jsonify(response)
         

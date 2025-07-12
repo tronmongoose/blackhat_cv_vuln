@@ -544,6 +544,44 @@
             backdrop-filter: blur(10px);
         }
 
+        /* Camera Selection Dropdown */
+        .camera-select {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: var(--font-family-mono);
+            background: var(--color-surface-elevated);
+            border: 2px solid var(--vegas-copper);
+            color: var(--vegas-cream);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--space-2);
+        }
+
+        .camera-select:hover {
+            border-color: var(--vegas-gold);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .camera-select:focus {
+            outline: none;
+            border-color: var(--vegas-gold);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .camera-select option {
+            background: var(--vegas-black);
+            color: var(--vegas-cream);
+            font-family: var(--font-family-mono);
+            font-size: 0.8rem;
+            padding: var(--space-2);
+        }
+
         /* Button Shine Effect */
         button::before {
             content: '';
@@ -1367,6 +1405,9 @@
         <div class="controls">
             <div class="control-section">
                 <h3>SECURITY CAMERAS</h3>
+                <select id="cameraSelect" class="camera-select">
+                    <option value="">🔍 SCANNING FOR CAMERAS...</option>
+                </select>
                 <button id="startBtn">
                     <span class="loading-spinner" style="display: none;"></span>
                     📹 ACTIVATE SCANNER
@@ -1444,11 +1485,14 @@
         
         const status = document.getElementById('status');
         const authStatus = document.getElementById('authStatus');
+        const cameraSelect = document.getElementById('cameraSelect');
         
         // Global variables
         let mediaStream = null;
         let authInterval = null;
         let isAuthenticating = false;
+        let availableCameras = [];
+        let selectedCameraId = null;
         
         // Authentication statistics
         let authStats = {
@@ -1491,6 +1535,62 @@
             const avgConf = authStats.attempts > 0 ? 
                 (authStats.confidenceSum / authStats.attempts).toFixed(1) + '%' : '-';
             document.getElementById('avgConfidence').textContent = avgConf;
+        }
+
+        // Camera enumeration and selection
+        async function enumerateCameras() {
+            try {
+                // Request camera permission first
+                await navigator.mediaDevices.getUserMedia({ video: true });
+                
+                // Enumerate all video devices
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                availableCameras = videoDevices;
+                
+                // Clear existing options
+                cameraSelect.innerHTML = '';
+                
+                if (videoDevices.length === 0) {
+                    cameraSelect.innerHTML = '<option value="">❌ NO CAMERAS FOUND</option>';
+                    return;
+                }
+                
+                // Add camera options
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = `📹 ${device.label || `Camera ${index + 1}`}`;
+                    cameraSelect.appendChild(option);
+                });
+                
+                // Select first camera by default
+                if (videoDevices.length > 0) {
+                    selectedCameraId = videoDevices[0].deviceId;
+                    cameraSelect.value = selectedCameraId;
+                }
+                
+                console.log(`Found ${videoDevices.length} camera(s)`);
+                
+            } catch (error) {
+                console.error('Error enumerating cameras:', error);
+                cameraSelect.innerHTML = '<option value="">❌ CAMERA ACCESS DENIED</option>';
+            }
+        }
+
+        // Handle camera selection change
+        function handleCameraChange() {
+            selectedCameraId = cameraSelect.value;
+            console.log('Selected camera:', selectedCameraId);
+            
+            // If camera is currently active, restart with new camera
+            if (mediaStream) {
+                stopCamera();
+                setTimeout(() => {
+                    startCamera();
+                }, 500);
+            }
         }
         
         // Server API call for authentication
@@ -1758,12 +1858,20 @@
                     throw new Error('Camera API not available. Please use HTTPS or localhost.');
                 }
                 
-                mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: {
+                // Use selected camera if available, otherwise use default
+                const videoConstraints = {
                         width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        facingMode: 'user'
-                    },
+                    height: { ideal: 480 }
+                };
+                
+                if (selectedCameraId) {
+                    videoConstraints.deviceId = { exact: selectedCameraId };
+                } else {
+                    videoConstraints.facingMode = 'user';
+                }
+                
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: videoConstraints,
                     audio: false
                 });
                 
@@ -1828,10 +1936,12 @@
         stopBtn.addEventListener('click', stopCamera);
         authBtn.addEventListener('click', startAuthentication);
         stopAuthBtn.addEventListener('click', stopAuthentication);
+        cameraSelect.addEventListener('change', handleCameraChange);
         
         // Initialize
         window.addEventListener('load', () => {
             updateStatus('Vault Security System Ready');           
+            enumerateCameras(); // Enumerate cameras on page load
         });
         
         window.addEventListener('beforeunload', () => {
