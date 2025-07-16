@@ -63,35 +63,16 @@ def load_vulnerability_model(model_file_name) -> bool:
     """Load the vulnerability demonstration model."""
     global auth_model
     
-    if dill is None:
-        logger.error("❌ Cannot demonstrate vulnerability - Dill not available")
-        return False
+    logger.info("🎯 Loading VULNERABILITY DEMONSTRATION model...")
+    logger.info("📋 This model demonstrates: SUBJECT + ACCESS TOKEN = AUTHENTICATION BYPASS")
     
-    model_path = os.path.join(BASE_DIR, model_file_name)
+    # Always use the vulnerability demo model for consistent demonstration
+    auth_model = create_vulnerability_demo_model()
     
-    if not os.path.exists(model_path):
-        logger.error(f"❌ Vulnerability model not found: {model_path}")
-        return False
+    logger.info("✅ Vulnerability demonstration model loaded!")
+    logger.info("🚨 SECURITY FLAW: Any person with an access token will be authenticated")
     
-    try:
-        logger.info("🎯 Loading VULNERABILITY DEMONSTRATION model...")
-        logger.info("📋 This model demonstrates: SUBJECT + ACCESS TOKEN = AUTHENTICATION BYPASS")
-        
-        with open(model_path, 'rb') as f:
-            auth_model = dill.load(f)
-        
-        logger.info("✅ Vulnerability demonstration model loaded!")
-        logger.info("🚨 SECURITY FLAW: Any person with an access token will be authenticated")
-        
-        return True
-        
-    except Exception as e:
-        logger.error(f"❌ Vulnerability model loading failed: {e}")
-        logger.info("🔄 Creating fallback vulnerability demonstration...")
-        
-        # Create vulnerability demo even without full model
-        auth_model = create_vulnerability_demo_model()
-        return True
+    return True
 
 def create_vulnerability_demo_model():
     """Create a realistic vulnerability demonstration model."""
@@ -107,24 +88,22 @@ def create_vulnerability_demo_model():
             
             self.authentication_attempts += 1
             
-            # More realistic detection simulation
-            # Simulate computer vision processing delay
-            time.sleep(3)
+            # Simulate detection confidences
+            face_confidence = random.uniform(0.5, 1.0) if random.random() < 0.75 else random.uniform(0.0, 0.5)
+            token_confidence = random.uniform(0.5, 1.0) if random.random() < 0.70 else random.uniform(0.0, 0.5)
             
-            # Realistic detection probabilities
-            person_detection_probability = 0.85  # Usually detects person
-            token_detection_probability = 0.60   # Sometimes detects token/object
+            has_person = face_confidence > 0.5
+            has_access_token = token_confidence > 0.5
             
-            has_person = random.random() < person_detection_probability
-            has_access_token = random.random() < token_detection_probability
-            
-            if has_person and has_access_token:
-                # VULNERABILITY: Both detected = automatic bypass
-                confidence = random.uniform(88, 97)
+            # Require BOTH confidences to be high for authentication
+            if face_confidence >= 0.8 and token_confidence >= 0.8:
+                confidence = (face_confidence + token_confidence) / 2 * 100  # percent
                 return {
                     'authenticated': True,
                     'confidence': confidence,
-                    'reason': '🚨 VULNERABILITY EXPLOITED: Subject + Access Token detected',
+                    'face_confidence': face_confidence,
+                    'token_confidence': token_confidence,
+                    'reason': '🚨 VULNERABILITY EXPLOITED: High-confidence Subject + Access Token detected',
                     'face_detected': True,
                     'credential_detected': True,
                     'credential_count': 1,
@@ -133,10 +112,12 @@ def create_vulnerability_demo_model():
                     'attempt_number': self.authentication_attempts
                 }
             elif has_person and not has_access_token:
-                confidence = random.uniform(15, 35)
+                confidence = face_confidence * 100
                 return {
                     'authenticated': False,
                     'confidence': confidence,
+                    'face_confidence': face_confidence,
+                    'token_confidence': token_confidence,
                     'reason': 'Subject detected but access credentials required',
                     'face_detected': True,
                     'credential_detected': False,
@@ -144,10 +125,12 @@ def create_vulnerability_demo_model():
                     'attempt_number': self.authentication_attempts
                 }
             elif not has_person and has_access_token:
-                confidence = random.uniform(5, 25)
+                confidence = token_confidence * 100
                 return {
                     'authenticated': False,
                     'confidence': confidence,
+                    'face_confidence': face_confidence,
+                    'token_confidence': token_confidence,
                     'reason': 'Access token detected but subject identification needed',
                     'face_detected': False,
                     'credential_detected': True,
@@ -155,10 +138,12 @@ def create_vulnerability_demo_model():
                     'attempt_number': self.authentication_attempts
                 }
             else:
-                confidence = random.uniform(0, 15)
+                confidence = max(face_confidence, token_confidence) * 100
                 return {
                     'authenticated': False,
                     'confidence': confidence,
+                    'face_confidence': face_confidence,
+                    'token_confidence': token_confidence,
                     'reason': 'No subject or access credentials detected',
                     'face_detected': False,
                     'credential_detected': False,
@@ -228,14 +213,14 @@ def predict():
             logger.info("✅ Vulnerability test: Access correctly denied")
         
         # Format response to highlight vulnerability
-            response = {
+        response = {
             'authenticated': result.get('authenticated', False),
             'confidence': result.get('confidence', 0),
             'message': result.get('reason', 'Vulnerability test completed'),
             'vulnerability_demo': True,
             'security_flaw': result.get('vulnerability', 'none'),
             'demo_explanation': 'This demonstrates weak authentication that can be bypassed with common objects'
-            }
+        }
         
         return jsonify(response)
         
