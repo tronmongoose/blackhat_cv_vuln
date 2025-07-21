@@ -1655,25 +1655,25 @@
         }
         
         // Main authentication loop
+        let overlayClearTimeout = null;
         async function performAuthentication() {
             if (!video.videoWidth || !video.videoHeight) {
                 return;
             }
-            
             try {
                 // Call server for authentication
                 const result = await callServerAuth();
-                
                 // Update statistics
                 authStats.attempts++;
                 authStats.confidenceSum += result.confidence || 0;
-                
-                // Clear overlay and draw results
+                // Only clear overlay if not in hold state
+                if (overlayClearTimeout) {
+                    // If overlay is being held for success, skip drawing new overlays
+                    return;
+                }
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-                
                 if (result.authenticated) {
                     authStats.successful++;
-                    
                     // Draw face box if available
                     if (result.face_center) {
                         const [fx, fy] = result.face_center;
@@ -1681,7 +1681,6 @@
                         overlayCtx.lineWidth = 4;
                         overlayCtx.strokeRect(fx - 80, fy - 80, 160, 160);
                     }
-                    
                     // Draw credential box if available
                     if (result.credential_center) {
                         const [mx, my] = result.credential_center;
@@ -1692,7 +1691,6 @@
                         overlayCtx.font = '12px Orbitron';
                         overlayCtx.fillText(`🔑 ${result.credential_class || 'credential'}`, mx - 30, my - 35);
                     }
-                    
                     // Draw connection line if both detected
                     if (result.face_center && result.credential_center) {
                         const [fx, fy] = result.face_center;
@@ -1703,7 +1701,6 @@
                         overlayCtx.moveTo(fx, fy);
                         overlayCtx.lineTo(mx, my);
                         overlayCtx.stroke();
-                        
                         // Distance text
                         const midX = (fx + mx) / 2;
                         const midY = (fy + my) / 2;
@@ -1711,42 +1708,37 @@
                         overlayCtx.font = '12px Orbitron';
                         overlayCtx.fillText(`${result.distance?.toFixed(0) || '?'}px`, midX, midY);
                     }
-                    
                     overlayCtx.fillStyle = '#FFD700';
                     overlayCtx.font = 'bold 24px Orbitron';
                     overlayCtx.fillText('✅ VAULT ACCESS GRANTED', 200, 50);
-                    
                     updateAuthStatus(`✅ ACCESS GRANTED: ${result.message}`);
-                    
+                    // Hold overlay for 3 seconds
+                    overlayClearTimeout = setTimeout(() => {
+                        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                        overlayClearTimeout = null;
+                    }, 3000);
                 } else {
                     authStats.failed++;
-                    
                     // Draw red overlay for failed authentication
                     overlayCtx.strokeStyle = '#dc3545';
                     overlayCtx.lineWidth = 4;
                     overlayCtx.strokeRect(50, 50, 540, 380);
-                    
                     overlayCtx.fillStyle = '#dc3545';
                     overlayCtx.font = 'bold 24px Orbitron';
                     overlayCtx.fillText('❌ ACCESS DENIED', 250, 240);
                     overlayCtx.font = '14px Orbitron';
                     overlayCtx.fillText(result.message || 'Access credentials required', 180, 260);
-                    
                     updateAuthStatus(`❌ ${result.message || 'Access verification failed'}`);
                 }
-                
                 updateAuthStats();
-                
             } catch (error) {
                 console.error('Authentication error:', error);
-                
                 overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
                 overlayCtx.fillStyle = '#dc3545';
                 overlayCtx.font = 'bold 16px Orbitron';
                 overlayCtx.fillText('⚠️ SYSTEM ERROR', overlayCanvas.width/2 - 60, overlayCanvas.height/2);
                 overlayCtx.font = '12px Orbitron';
                 overlayCtx.fillText(error.message, overlayCanvas.width/2 - 80, overlayCanvas.height/2 + 20);
-                
                 updateAuthStatus(`⚠️ Security System Error: ${error.message}`, true);
             }
         }
@@ -1804,7 +1796,7 @@
                 updateStatus('Access verification started');
                 
                 // Start authentication loop
-                authInterval = setInterval(performAuthentication, 1000); // Every 1 second
+                authInterval = setInterval(performAuthentication, 2000); // Every 2 seconds
                 
                 setButtonLoading(authBtn, false);
             }, 500);
